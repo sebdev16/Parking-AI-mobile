@@ -8,10 +8,10 @@
             <InsightsFilterSettings>
               <option name="connection">
                 <ConnectionSetting>
-                  <option name="appId" value="PLACEHOLDER" />
-                  <option name="mobileSdkAppId" value="" />
-                  <option name="projectId" value="" />
-                  <option name="projectNumber" value="" />
+                  <option name="appId" value="com.example.parkingai" />
+                  <option name="mobileSdkAppId" value="1:646232982488:android:06bd37a747e2c23c2de8ad" />
+                  <option name="projectId" value="parking-ai-571fe" />
+                  <option name="projectNumber" value="646232982488" />
                 </ConnectionSetting>
               </option>
               <option name="signal" value="SIGNAL_UNSPECIFIED" />

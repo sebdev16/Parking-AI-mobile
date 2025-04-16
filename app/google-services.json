@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "646232982488",
+    "project_id": "parking-ai-571fe",
+    "storage_bucket": "parking-ai-571fe.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:646232982488:android:06bd37a747e2c23c2de8ad",
+        "android_client_info": {
+          "package_name": "com.example.parkingai"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCVRQmVqNxpyZa48hEEJD1-cmqZ_EIUywk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
