@@ -14,6 +14,10 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import androidx.navigation.NavHostController
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
 import com.airbnb.lottie.compose.*
 import com.example.parkingai.ui.theme.ParkingAITheme
 import kotlinx.coroutines.delay
@@ -24,15 +28,11 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             ParkingAITheme {
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    Column(modifier = Modifier.padding(innerPadding)) {
-                        Text(
-                            text = "Bienvenido a Parking AI",
-                            style = MaterialTheme.typography.headlineMedium,
-                            modifier = Modifier.padding(16.dp)
-                        )
-                        // Aquí podrías agregar la navegación si usas NavHost
-                    }
+                val navController = rememberNavController()
+                NavHost(navController = navController, startDestination = "splash") {
+                    composable("splash") { SplashScreen(navController) }
+                    composable("login") { LoginScreen(navController) }
+                    composable("register") { /* Pantalla de registro */ }
                 }
             }
         }
@@ -41,7 +41,7 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun SplashScreen(navController: NavController) {
-    val composition by rememberLottieComposition(LottieCompositionSpec.Asset("splash.json"))
+    val composition by rememberLottieComposition(LottieCompositionSpec.RawRes(R.raw.animacion_carro))
     val progress by animateLottieCompositionAsState(
         composition,
         iterations = 1
@@ -56,15 +56,18 @@ fun SplashScreen(navController: NavController) {
         }
     }
 
-    Box(
+    Column(
         modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
     ) {
         LottieAnimation(
             composition,
             progress = { progress },
             modifier = Modifier.size(250.dp)
         )
+        Spacer(modifier = Modifier.height(16.dp))
+        Text(text = "SmartParking", style = MaterialTheme.typography.headlineMedium)
     }
 }
 
