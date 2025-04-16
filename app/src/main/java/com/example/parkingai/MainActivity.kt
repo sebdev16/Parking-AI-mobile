@@ -73,7 +73,7 @@ fun SplashScreen(navController: NavController) {
 
 @Composable
 fun LoginScreen(navController: NavController) {
-    var email by remember { mutableStateOf("") }
+    var user by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
 
     Column(
@@ -87,9 +87,9 @@ fun LoginScreen(navController: NavController) {
         Spacer(modifier = Modifier.height(16.dp))
 
         OutlinedTextField(
-            value = email,
-            onValueChange = { email = it },
-            label = { Text("Correo electrónico") },
+            value = user,
+            onValueChange = { user = it },
+            label = { Text("Usuario") },
             modifier = Modifier.fillMaxWidth()
         )
 
