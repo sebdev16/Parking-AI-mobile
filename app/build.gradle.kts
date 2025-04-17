@@ -51,6 +51,7 @@ dependencies {
     implementation("com.airbnb.android:lottie-compose:6.1.0")
     implementation(platform("com.google.firebase:firebase-bom:33.12.0"))
     implementation("com.google.firebase:firebase-auth-ktx") //added
+    implementation("com.google.firebase:firebase-firestore-ktx")
     implementation(libs.androidx.ui)
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
