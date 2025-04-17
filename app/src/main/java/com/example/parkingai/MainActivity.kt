@@ -41,6 +41,7 @@ class MainActivity : ComponentActivity() {
                     composable("splash") { SplashScreen(navController) }
                     composable("login") { LoginScreen(navController) }
                     composable("register") { RegisterScreen(navController) }
+                    composable("parking") { ParkingScreen(navController) } // Nueva pantalla
                 }
             }
         }
@@ -113,16 +114,19 @@ fun LoginScreen(navController: NavController) {
         )
 
         Spacer(modifier = Modifier.height(16.dp))
-
+//--------------------modifique esta session del boton-----------------------------------------------------------
         Button(
             onClick = {
-                Toast.makeText(context, "Actualmente solo disponible por correo. Añadir lógica con base de datos para login por usuario.", Toast.LENGTH_LONG).show()
-            },
-            modifier = Modifier.fillMaxWidth()
+                if (username.isNotEmpty() && password.isNotEmpty()) {
+                    navController.navigate("parking") // Redirige después del login
+                } else {
+                    Toast.makeText(context, "Usuario/contraseña requeridos", Toast.LENGTH_SHORT).show()
+                }
+            }
         ) {
             Text("Iniciar Sesión")
         }
-
+//----------------------------------------------------------------------------------------------------------------
         Spacer(modifier = Modifier.height(8.dp))
 
         Text(
@@ -241,3 +245,79 @@ fun GreetingPreview() {
         Text("Bienvenido a Parking AI")
     }
 }
+//--------------------------------------------mgz añadidos------------------------------------------
+@Composable
+fun ParkingScreen(navController: NavController) {
+    val database = Firebase.database.reference
+    val parkingSpots = remember { mutableStateListOf(false, false, false) }
+
+    // Leer estado inicial desde Firebase
+    LaunchedEffect(Unit) {
+        database.child("parkingSpots").get().addOnSuccessListener { snapshot ->
+            snapshot.children.forEachIndexed { index, child ->
+                parkingSpots[index] = child.getValue(Boolean::class.java) ?: false
+            }
+        }
+    }
+
+    // Función para actualizar Firebase y el estado local
+    fun updateSpot(index: Int, isOccupied: Boolean) {
+        parkingSpots[index] = isOccupied
+        database.child("parkingSpots").child(index.toString()).setValue(isOccupied)
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text("Estacionamiento", style = MaterialTheme.typography.headlineMedium)
+        Spacer(modifier = Modifier.height(32.dp))
+
+        // Mostrar los 3 espacios
+        parkingSpots.forEachIndexed { index, isOccupied ->
+            ParkingSpot(
+                spotNumber = index + 1,
+                isOccupied = isOccupied,
+                onClick = {
+                    updateSpot(index, !isOccupied) // Usamos la función updateSpot aquí
+                }
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+        }
+    }
+}
+//--------------------------------------------------------------------------------------------------
+@Composable
+fun ParkingSpot(spotNumber: Int, isOccupied: Boolean, onClick: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .size(100.dp)
+            .background(
+                color = if (isOccupied) Color.Red else Color.Green,
+                shape = CircleShape
+            )
+            .clickable { onClick() },
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = "Lugar $spotNumber",
+            color = Color.White,
+            fontWeight = FontWeight.Bold
+        )
+    }
+}
+
+
+
+/*
+
+Solo por si acaso
+
+Añade esta dependencia en build.gradle (Module:app):
+
+implementation 'com.google.firebase:firebase-database-ktx:20.3.1'
+
+ */
