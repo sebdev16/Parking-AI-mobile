@@ -25,6 +25,7 @@ import com.airbnb.lottie.compose.*
 import com.example.parkingai.ui.theme.ParkingAITheme
 import com.google.firebase.FirebaseApp
 import com.google.firebase.auth.ktx.auth
+import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
 import kotlinx.coroutines.delay
 import java.util.*
@@ -41,6 +42,7 @@ class MainActivity : ComponentActivity() {
                     composable("splash") { SplashScreen(navController) }
                     composable("login") { LoginScreen(navController) }
                     composable("register") { RegisterScreen(navController) }
+                    composable("home") { HomeScreen() }
                 }
             }
         }
@@ -134,8 +136,6 @@ fun LoginScreen(navController: NavController) {
     }
 }
 
-//added
-
 @Composable
 fun RegisterScreen(navController: NavController) {
     val context = LocalContext.current
@@ -208,11 +208,32 @@ fun RegisterScreen(navController: NavController) {
         Button(
             onClick = {
                 val auth = Firebase.auth
+                val db = Firebase.firestore
+
                 auth.createUserWithEmailAndPassword(email, password)
                     .addOnCompleteListener { task ->
                         if (task.isSuccessful) {
-                            Toast.makeText(context, "Usuario registrado con éxito", Toast.LENGTH_SHORT).show()
-                            navController.navigate("login")
+                            val uid = task.result?.user?.uid
+
+                            val nuevoUsuario = hashMapOf(
+                                "nombre" to name,
+                                "correo" to email,
+                                "usuario" to username,
+                                "fechaNacimiento" to birthdate,
+                                "rfidTag" to ""
+                            )
+
+                            uid?.let {
+                                db.collection("usuarios").document(it)
+                                    .set(nuevoUsuario)
+                                    .addOnSuccessListener {
+                                        Toast.makeText(context, "Usuario registrado y guardado en Firestore", Toast.LENGTH_SHORT).show()
+                                        navController.navigate("login")
+                                    }
+                                    .addOnFailureListener { e ->
+                                        Toast.makeText(context, "Error al guardar en Firestore: ${e.message}", Toast.LENGTH_SHORT).show()
+                                    }
+                            }
                         } else {
                             Toast.makeText(context, "Error: ${task.exception?.message}", Toast.LENGTH_SHORT).show()
                         }
@@ -231,6 +252,19 @@ fun RegisterScreen(navController: NavController) {
                 navController.navigate("login")
             }
         )
+    }
+}
+
+@Composable
+fun HomeScreen() {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(text = "Bienvenido a SmartParking", style = MaterialTheme.typography.headlineMedium)
     }
 }
 
