@@ -42,7 +42,7 @@ class MainActivity : ComponentActivity() {
                     composable("splash") { SplashScreen(navController) }
                     composable("login") { LoginScreen(navController) }
                     composable("register") { RegisterScreen(navController) }
-                    composable("home") { HomeScreen() }
+                    composable("home") { HomeScreen(navController) }
                 }
             }
         }
@@ -138,14 +138,14 @@ fun LoginScreen(navController: NavController) {
                                                 popUpTo("login") { inclusive = true }
                                             }
                                         }
-                                        .addOnFailureListener { e ->
-                                            Toast.makeText(context, "Error al iniciar sesión: ${e.message}", Toast.LENGTH_SHORT).show()
+                                        .addOnFailureListener {
+                                            Toast.makeText(context, "Usuario o contraseña incorrectos", Toast.LENGTH_SHORT).show()
                                         }
                                 } else {
                                     Toast.makeText(context, "Correo no encontrado para este usuario", Toast.LENGTH_SHORT).show()
                                 }
                             } else {
-                                Toast.makeText(context, "Usuario no encontrado", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(context, "Usuario o contraseña incorrectos", Toast.LENGTH_SHORT).show()
                             }
                         }
                         .addOnFailureListener { e ->
@@ -245,33 +245,45 @@ fun RegisterScreen(navController: NavController) {
                 val auth = Firebase.auth
                 val db = Firebase.firestore
 
-                auth.createUserWithEmailAndPassword(email, password)
-                    .addOnCompleteListener { task ->
-                        if (task.isSuccessful) {
-                            val uid = task.result?.user?.uid
-
-                            val nuevoUsuario = hashMapOf(
-                                "nombre" to name,
-                                "correo" to email,
-                                "usuario" to username,
-                                "fechaNacimiento" to birthdate,
-                                "rfidTag" to ""
-                            )
-
-                            uid?.let {
-                                db.collection("usuarios").document(it)
-                                    .set(nuevoUsuario)
-                                    .addOnSuccessListener {
-                                        Toast.makeText(context, "Usuario registrado y guardado en Firestore", Toast.LENGTH_SHORT).show()
-                                        navController.navigate("login")
-                                    }
-                                    .addOnFailureListener { e ->
-                                        Toast.makeText(context, "Error al guardar en Firestore: ${e.message}", Toast.LENGTH_SHORT).show()
-                                    }
-                            }
+                db.collection("usuarios")
+                    .whereEqualTo("usuario", username)
+                    .get()
+                    .addOnSuccessListener { documents ->
+                        if (!documents.isEmpty) {
+                            Toast.makeText(context, "El nombre de usuario ya está en uso", Toast.LENGTH_SHORT).show()
                         } else {
-                            Toast.makeText(context, "Error: ${task.exception?.message}", Toast.LENGTH_SHORT).show()
+                            auth.createUserWithEmailAndPassword(email, password)
+                                .addOnCompleteListener { task ->
+                                    if (task.isSuccessful) {
+                                        val uid = task.result?.user?.uid
+
+                                        val nuevoUsuario = hashMapOf(
+                                            "nombre" to name,
+                                            "correo" to email,
+                                            "usuario" to username,
+                                            "fechaNacimiento" to birthdate,
+                                            "rfidTag" to ""
+                                        )
+
+                                        uid?.let {
+                                            db.collection("usuarios").document(it)
+                                                .set(nuevoUsuario)
+                                                .addOnSuccessListener {
+                                                    Toast.makeText(context, "Usuario registrado correctamente", Toast.LENGTH_SHORT).show()
+                                                    navController.navigate("login")
+                                                }
+                                                .addOnFailureListener { e ->
+                                                    Toast.makeText(context, "Error al guardar en Firestore: ${e.message}", Toast.LENGTH_SHORT).show()
+                                                }
+                                        }
+                                    } else {
+                                        Toast.makeText(context, "Error: ${task.exception?.message}", Toast.LENGTH_SHORT).show()
+                                    }
+                                }
                         }
+                    }
+                    .addOnFailureListener { e ->
+                        Toast.makeText(context, "Error al verificar el nombre de usuario: ${e.message}", Toast.LENGTH_SHORT).show()
                     }
             },
             modifier = Modifier.fillMaxWidth()
@@ -291,7 +303,10 @@ fun RegisterScreen(navController: NavController) {
 }
 
 @Composable
-fun HomeScreen() {
+fun HomeScreen(navController: NavController) {
+    val context = LocalContext.current
+    val auth = Firebase.auth
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -300,6 +315,21 @@ fun HomeScreen() {
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(text = "Bienvenido a SmartParking", style = MaterialTheme.typography.headlineMedium)
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        Button(
+            onClick = {
+                auth.signOut()
+                Toast.makeText(context, "Sesión cerrada", Toast.LENGTH_SHORT).show()
+                navController.navigate("login") {
+                    popUpTo("home") { inclusive = true }
+                }
+            },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("Cerrar Sesión")
+        }
     }
 }
 
@@ -310,3 +340,4 @@ fun GreetingPreview() {
         Text("Bienvenido a Parking AI")
     }
 }
+
