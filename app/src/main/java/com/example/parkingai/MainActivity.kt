@@ -87,6 +87,9 @@ fun LoginScreen(navController: NavController) {
     var password by remember { mutableStateOf("") }
     val context = LocalContext.current
 
+    val db = Firebase.firestore
+    val auth = Firebase.auth
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -118,7 +121,39 @@ fun LoginScreen(navController: NavController) {
 
         Button(
             onClick = {
-                Toast.makeText(context, "Actualmente solo disponible por correo. Añadir lógica con base de datos para login por usuario.", Toast.LENGTH_LONG).show()
+                if (username.isNotEmpty() && password.isNotEmpty()) {
+                    db.collection("usuarios")
+                        .whereEqualTo("usuario", username)
+                        .get()
+                        .addOnSuccessListener { documents ->
+                            if (!documents.isEmpty) {
+                                val userDoc = documents.documents[0]
+                                val email = userDoc.getString("correo")
+
+                                if (!email.isNullOrEmpty()) {
+                                    auth.signInWithEmailAndPassword(email, password)
+                                        .addOnSuccessListener {
+                                            Toast.makeText(context, "Inicio de sesión exitoso", Toast.LENGTH_SHORT).show()
+                                            navController.navigate("home") {
+                                                popUpTo("login") { inclusive = true }
+                                            }
+                                        }
+                                        .addOnFailureListener { e ->
+                                            Toast.makeText(context, "Error al iniciar sesión: ${e.message}", Toast.LENGTH_SHORT).show()
+                                        }
+                                } else {
+                                    Toast.makeText(context, "Correo no encontrado para este usuario", Toast.LENGTH_SHORT).show()
+                                }
+                            } else {
+                                Toast.makeText(context, "Usuario no encontrado", Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                        .addOnFailureListener { e ->
+                            Toast.makeText(context, "Error al buscar el usuario: ${e.message}", Toast.LENGTH_SHORT).show()
+                        }
+                } else {
+                    Toast.makeText(context, "Completa todos los campos", Toast.LENGTH_SHORT).show()
+                }
             },
             modifier = Modifier.fillMaxWidth()
         ) {
