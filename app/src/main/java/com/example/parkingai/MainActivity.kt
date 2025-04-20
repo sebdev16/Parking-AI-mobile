@@ -6,12 +6,14 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
@@ -25,6 +27,7 @@ import com.airbnb.lottie.compose.*
 import com.example.parkingai.ui.theme.ParkingAITheme
 import com.google.firebase.FirebaseApp
 import com.google.firebase.auth.ktx.auth
+import com.google.firebase.auth.ktx.userProfileChangeRequest
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
 import kotlinx.coroutines.delay
@@ -80,6 +83,7 @@ fun SplashScreen(navController: NavController) {
         Text(text = "SmartParking", style = MaterialTheme.typography.headlineMedium)
     }
 }
+
 
 @Composable
 fun LoginScreen(navController: NavController) {
@@ -302,36 +306,98 @@ fun RegisterScreen(navController: NavController) {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(navController: NavController) {
     val context = LocalContext.current
     val auth = Firebase.auth
+    val db = Firebase.firestore
+    var espacios by remember { mutableStateOf(listOf<Map<String, Any>>()) }
+//    val usuarioActual = auth.currentUser?.displayName ?: "displayname"
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Text(text = "Bienvenido a SmartParking", style = MaterialTheme.typography.headlineMedium)
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        Button(
-            onClick = {
-                auth.signOut()
-                Toast.makeText(context, "Sesión cerrada", Toast.LENGTH_SHORT).show()
-                navController.navigate("login") {
-                    popUpTo("home") { inclusive = true }
+    LaunchedEffect(Unit) {
+        db.collection("parking_spaces")
+            .get()
+            .addOnSuccessListener { result ->
+                val lista = result.documents.mapNotNull { doc ->
+                    mapOf(
+                        "ubicacion" to (doc.getString("ubicacion") ?: "Sin ubicación"),
+                        "disponible" to (doc.getBoolean("disponible") ?: false),
+                        "usuarioAsignado" to (doc.getString("usuarioAsignado") ?: "Ninguno")
+                    )
                 }
-            },
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text("Cerrar Sesión")
-        }
+                espacios = lista
+            }
     }
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = {
+                    Text("SmartParking")
+                }
+            )
+        },
+        content = { padding ->
+            Column(
+                modifier = Modifier
+                    .padding(padding)
+                    .fillMaxSize()
+                    .padding(top = 32.dp, start = 16.dp, end = 16.dp, bottom = 16.dp),
+                verticalArrangement = Arrangement.Top,
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(text = "Bienvenido", style = MaterialTheme.typography.headlineMedium)
+                Spacer(modifier = Modifier.height(24.dp))
+
+
+                Spacer(modifier = Modifier.height(32.dp))
+
+                Text("Espacios de estacionamiento:", style = MaterialTheme.typography.headlineSmall)
+                Spacer(modifier = Modifier.height(16.dp))
+
+                repeat(3) { index ->
+                    val espacio = espacios.getOrNull(index)
+                    val disponible = espacio?.get("disponible") as? Boolean ?: false
+                    val color = if (disponible) Color(0xFFA5D6A7) else Color(0xFFEF9A9A)
+
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 8.dp)
+                            .background(color),
+                        colors = CardDefaults.cardColors(containerColor = color)
+                    ) {
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            Text("Lugar ${index + 1}", style = MaterialTheme.typography.titleMedium)
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text("Ubicación: ${espacio?.get("ubicacion") ?: "Cargando..."}")
+                            Text("Disponible: ${if (disponible) "Sí" else "No"}")
+                            Text("Asignado a: ${espacio?.get("usuarioAsignado") ?: "Cargando..."}")
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(32.dp))
+
+                Button(
+                    onClick = {
+                        auth.signOut()
+                        Toast.makeText(context, "Sesión cerrada", Toast.LENGTH_SHORT).show()
+                        navController.navigate("login") {
+                            popUpTo("home") { inclusive = true }
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Cerrar Sesión")
+                }
+
+            }
+        }
+    )
 }
+
 
 @Preview(showBackground = true)
 @Composable
