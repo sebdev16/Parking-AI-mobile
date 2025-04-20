@@ -313,7 +313,6 @@ fun HomeScreen(navController: NavController) {
     val auth = Firebase.auth
     val db = Firebase.firestore
     var espacios by remember { mutableStateOf(listOf<Map<String, Any>>()) }
-//    val usuarioActual = auth.currentUser?.displayName ?: "displayname"
 
     LaunchedEffect(Unit) {
         db.collection("parking_spaces")
@@ -321,9 +320,8 @@ fun HomeScreen(navController: NavController) {
             .addOnSuccessListener { result ->
                 val lista = result.documents.mapNotNull { doc ->
                     mapOf(
-                        "ubicacion" to (doc.getString("ubicacion") ?: "Sin ubicación"),
-                        "disponible" to (doc.getBoolean("disponible") ?: false),
-                        "usuarioAsignado" to (doc.getString("usuarioAsignado") ?: "Ninguno")
+                        "number" to (doc.getString("number") ?: "0"),
+                        "isAvailable" to (doc.getBoolean("isAvailable") ?: false)
                     )
                 }
                 espacios = lista
@@ -348,17 +346,15 @@ fun HomeScreen(navController: NavController) {
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(text = "Bienvenido", style = MaterialTheme.typography.headlineMedium)
-                Spacer(modifier = Modifier.height(24.dp))
-
 
                 Spacer(modifier = Modifier.height(32.dp))
 
                 Text("Espacios de estacionamiento:", style = MaterialTheme.typography.headlineSmall)
                 Spacer(modifier = Modifier.height(16.dp))
 
-                repeat(3) { index ->
-                    val espacio = espacios.getOrNull(index)
-                    val disponible = espacio?.get("disponible") as? Boolean ?: false
+                espacios.forEachIndexed { index, espacio ->
+                    val numero = espacio["number"] as? String ?: "N/A"
+                    val disponible = espacio["isAvailable"] as? Boolean ?: false
                     val color = if (disponible) Color(0xFFA5D6A7) else Color(0xFFEF9A9A)
 
                     Card(
@@ -369,16 +365,12 @@ fun HomeScreen(navController: NavController) {
                         colors = CardDefaults.cardColors(containerColor = color)
                     ) {
                         Column(modifier = Modifier.padding(16.dp)) {
-                            Text("Lugar ${index + 1}", style = MaterialTheme.typography.titleMedium)
+                            Text("Lugar: $numero", style = MaterialTheme.typography.titleMedium)
                             Spacer(modifier = Modifier.height(8.dp))
-                            Text("Ubicación: ${espacio?.get("ubicacion") ?: "Cargando..."}")
                             Text("Disponible: ${if (disponible) "Sí" else "No"}")
-                            Text("Asignado a: ${espacio?.get("usuarioAsignado") ?: "Cargando..."}")
                         }
                     }
                 }
-
-                Spacer(modifier = Modifier.height(32.dp))
 
                 Button(
                     onClick = {
