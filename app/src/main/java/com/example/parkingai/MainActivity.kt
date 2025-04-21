@@ -6,7 +6,7 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.animation.*
+import androidx.compose.animation.* //
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -396,34 +396,38 @@ fun HomeScreen(navController: NavController) {
                 Spacer(modifier = Modifier.height(16.dp))
 
                 espacios.forEachIndexed { index, espacio ->
-                    val numero = espacio["number"] as String
-                    val disponible = espacio["isAvailable"] as Boolean
-                    Button(
-                        onClick = {
-                            // lógica para seleccionar espacio
-                        },
-                        modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = if (disponible) Color(0xFF0ED2F7) else Color.Gray
-                        )
+                    val numero = espacio["number"] as? String ?: "N/A"
+                    val disponible = espacio["isAvailable"] as? Boolean ?: false
+                    val color = if (disponible) Color(0xFFA5D6A7) else Color(0xFFEF9A9A)
+
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 8.dp)
+                            .background(color),
+                        colors = CardDefaults.cardColors(containerColor = color)
                     ) {
-                        Text("Espacio $numero")
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            Text("Lugar: $numero", style = MaterialTheme.typography.titleMedium)
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text("Disponible: ${if (disponible) "Sí" else "No"}")
+                        }
                     }
                 }
-
-                Spacer(modifier = Modifier.height(16.dp))
 
                 Button(
                     onClick = {
                         auth.signOut()
+                        Toast.makeText(context, "Sesión cerrada", Toast.LENGTH_SHORT).show()
                         navController.navigate("login") {
                             popUpTo("home") { inclusive = true }
                         }
-                    }
+                    },
+                    modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text("Cerrar sesión")
+                    Text("Cerrar Sesión")
                 }
+
             }
         }
     )
