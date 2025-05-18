@@ -30,7 +30,11 @@ import com.google.firebase.auth.ktx.auth
 import com.google.firebase.auth.ktx.userProfileChangeRequest
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.util.*
 
 class MainActivity : ComponentActivity() {
@@ -313,6 +317,10 @@ fun HomeScreen(navController: NavController) {
     val auth = Firebase.auth
     val db = Firebase.firestore
     var espacios by remember { mutableStateOf(listOf<Map<String, Any>>()) }
+    var tagId by remember { mutableStateOf<String?>(null) }
+    var mostrarDialogoRFID by remember { mutableStateOf(false) }
+    var mensajeDialogo by remember { mutableStateOf("") }
+    val userId = auth.currentUser?.uid
 
     LaunchedEffect(Unit) {
         db.collection("parking_spaces")
@@ -345,8 +353,40 @@ fun HomeScreen(navController: NavController) {
                 verticalArrangement = Arrangement.Top,
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text(text = "Bienvenido", style = MaterialTheme.typography.headlineMedium)
+                Text(text = "Bienvenido" , style = MaterialTheme.typography.headlineMedium)
+                Spacer(modifier = Modifier.height(24.dp))
+                // aqui esta la parte de la tarjeta RFID
+                Button(
+                    onClick = {
+                        mensajeDialogo = "Acerca tu SmarTag al lector..."
+                        mostrarDialogoRFID = true
+                        recibirTagUnaVez { idTag ->
+                            tagId = idTag
+                            mensajeDialogo = "ID recibido: $idTag"
 
+                            userId?.let { uid ->
+                                db.collection("users").document(uid).get().addOnSuccessListener { doc ->
+                                    if (!doc.contains("rfidTag")) {
+                                        db.collection("users").document(uid)
+                                            .update("rfidTag", idTag)
+                                            .addOnSuccessListener {
+                                                mensajeDialogo = "SmarTag registrada exitosamente."
+                                            }
+                                            .addOnFailureListener {
+                                                mensajeDialogo = "Error al registrar el SmarTag."
+                                            }
+                                    } else {
+                                        mensajeDialogo = "Ya tienes una SmarTag registrada."
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Registrar tu SmarTag")
+                }
+                //hasta aqui acaba la seccion de RFID, abajo esta la parte del messageDialog
                 Spacer(modifier = Modifier.height(32.dp))
 
                 Text("Espacios de estacionamiento:", style = MaterialTheme.typography.headlineSmall)
@@ -372,22 +412,40 @@ fun HomeScreen(navController: NavController) {
                     }
                 }
 
-                Button(
-                    onClick = {
-                        auth.signOut()
-                        Toast.makeText(context, "Sesión cerrada", Toast.LENGTH_SHORT).show()
-                        navController.navigate("login") {
-                            popUpTo("home") { inclusive = true }
+                //aqui esta la logica para el messageDialog
+                if (mostrarDialogoRFID) {
+                    AlertDialog(
+                        onDismissRequest = {
+                            mostrarDialogoRFID = false
+                        },
+                        confirmButton = {
+                            TextButton(onClick = {
+                                mostrarDialogoRFID = false
+                            }) {
+                                Text("OK")
+                            }
+                        },
+                        title = {
+                            Text("Hora de leer tu SmarTag")
+                        },
+                        text = {
+                            Text(mensajeDialogo)
                         }
-                    },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text("Cerrar Sesión")
+                    )
                 }
-
             }
         }
     )
+}
+
+//funcion para recibir el tag RFID
+fun recibirTagUnaVez(onTagReceived: (String) -> Unit) {
+    CoroutineScope(Dispatchers.IO).launch {
+        delay(5000) // Simulación de espera
+        withContext(Dispatchers.Main) {
+            onTagReceived("TAG123456") // Simula un tag leído, pero lo va a recibir el sensor RFID
+        }
+    }
 }
 
 
