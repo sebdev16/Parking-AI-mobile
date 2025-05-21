@@ -49,7 +49,10 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.material.icons.filled.ExitToApp
-
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 
 class MainActivity : ComponentActivity() {
@@ -442,6 +445,10 @@ fun HomeScreen(navController: NavController) {
     val auth = Firebase.auth
     val db = Firebase.firestore
     var espacios by remember { mutableStateOf<List<Map<String, Any>>>(emptyList()) }
+    var tagId by remember { mutableStateOf<String?>(null) }
+    var mostrarDialogoRFID by remember { mutableStateOf(false) }
+    var mensajeDialogo by remember { mutableStateOf("") }
+    val userId = auth.currentUser?.uid
 
     LaunchedEffect(Unit) {
         db.collection("parking_spaces")
@@ -519,6 +526,48 @@ fun HomeScreen(navController: NavController) {
                                 )
                             )
                         }
+                    }
+
+                    Button(
+                        onClick = {
+                            mensajeDialogo = "Acerca tu tarjeta al lector RFID..."
+                            mostrarDialogoRFID = true
+                            recibirTagUnaVez { idTag ->
+                                tagId = idTag
+                                mensajeDialogo = "ID recibido: $idTag"
+
+                                userId?.let { uid ->
+                                    db.collection("users").document(uid).get().addOnSuccessListener { doc ->
+                                        if (!doc.contains("rfidTag")) {
+                                            db.collection("users").document(uid)
+                                                .update("rfidTag", idTag)
+                                                .addOnSuccessListener {
+                                                    mensajeDialogo = "Tarjeta registrada exitosamente."
+                                                }
+                                                .addOnFailureListener {
+                                                    mensajeDialogo = "Error al registrar tarjeta."
+                                                }
+                                        } else {
+                                            mensajeDialogo = "Ya tienes una tarjeta registrada."
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 16.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFF0ED2F7),
+                            contentColor = Color.White
+                        ),
+                        elevation = ButtonDefaults.buttonElevation(
+                            defaultElevation = 8.dp,
+                            pressedElevation = 4.dp
+                        )
+                    ) {
+                        Text("Registrar tarjeta RFID")
                     }
 
                     // Lista de espacios
@@ -611,9 +660,31 @@ fun HomeScreen(navController: NavController) {
                         }
                     }
                 }
+                if (mostrarDialogoRFID) {
+                    AlertDialog(
+                        onDismissRequest = { mostrarDialogoRFID = false },
+                        title = { Text("Registro RFID") },
+                        text = { Text(mensajeDialogo) },
+                        confirmButton = {
+                            TextButton(onClick = { mostrarDialogoRFID = false }) {
+                                Text("OK")
+                            }
+                        }
+                    )
+                }
+
             }
         }
     )
+}
+
+fun recibirTagUnaVez(onTagReceived: (String) -> Unit) {
+    CoroutineScope(Dispatchers.IO).launch {
+        delay(2000) // Simulación de espera
+        withContext(Dispatchers.Main) {
+            onTagReceived("TAG123456") // Simula un tag leído
+        }
+    }
 }
 
 @Preview(showBackground = true)
